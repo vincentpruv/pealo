@@ -158,7 +158,11 @@ export default function ProjectsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-4 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold">{isNone ? "Subscribe to a Plan" : "Upgrade to Pro"}</h2>
+              <h2 className="text-lg font-semibold">
+                {hasReachedLimit 
+                  ? (isNone ? "Subscribe to a Plan" : "Upgrade to Pro") 
+                  : "Create a new widget"}
+              </h2>
               <button 
                 onClick={() => setShowModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-50"
