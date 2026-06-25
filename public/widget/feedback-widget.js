@@ -362,7 +362,7 @@
   document.body.appendChild(container);
 
   // --- Icons ---
-  const CHAT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" stroke="#222222" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><path d="M3 21l1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path></svg>`;
+  const CHAT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32" style="display: block;"><path d="M 16 3 C 23.5 3 29 7.5 29 13 C 29 18.5 23.5 23 16 23 C 14.5 23 13.1 22.8 11.7 22.4 C 9 24.5 5.5 25 5.5 25 C 5.5 25 7 21.5 7.6 19.8 C 4.8 18.1 3 15.7 3 13 C 3 7.5 8.5 3 16 3 Z" fill="#ffffff" stroke="#222222" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path transform="translate(10, 6) scale(0.6)" fill-rule="evenodd" clip-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" fill="#facc15" stroke="#222222" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
   const CLOSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
 
   // --- State ---
