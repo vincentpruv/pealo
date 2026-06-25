@@ -361,6 +361,10 @@
   container.id = "fl-widget-container";
   document.body.appendChild(container);
 
+  // --- Icons ---
+  const CHAT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`;
+  const CLOSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
   // --- State ---
   let isOpen = false;
   let selectedRating = null;
@@ -368,7 +372,7 @@
   // --- Render DOM Elements ---
   function initDOM() {
     container.innerHTML = `
-      <button id="fl-widget-btn">💬</button>
+      <button id="fl-widget-btn">${CHAT_ICON}</button>
       <div id="fl-widget-modal">
         <div class="fl-modal-header">
           <div class="fl-modal-title">${widgetConfig.title || "Send us your feedback"}</div>
@@ -464,7 +468,7 @@
     const btn = document.getElementById("fl-widget-btn");
     modal.classList.add("fl-open");
     btn.classList.add("fl-open");
-    btn.innerHTML = `✕`;
+    btn.innerHTML = CLOSE_ICON;
   }
 
   // --- Close Modal ---
@@ -475,7 +479,7 @@
     const btn = document.getElementById("fl-widget-btn");
     modal.classList.remove("fl-open");
     btn.classList.remove("fl-open");
-    btn.innerHTML = `💬`;
+    btn.innerHTML = CHAT_ICON;
 
     // Reset stars and text input
     const starsContainer = modal.querySelector(".fl-stars-container");
