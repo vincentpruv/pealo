@@ -99,7 +99,6 @@ export function DashboardSidebar() {
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="w-full flex items-center gap-2 text-destructive hover:text-destructive"
               >
-                <span className="text-lg mr-1">👋</span>
                 <span>Sign out</span>
               </button>
             </SidebarMenuButton>
