@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local internal documentation
+LAUNCH_CHECKLIST.md
+OPEN_SOURCE_STRATEGY.txt
