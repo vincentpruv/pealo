@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
-import mongoose from "mongoose";
 import Feedback from "@/models/Feedback";
 import Project from "@/models/Project";
 import { generateInsights } from "@/lib/ai";
@@ -45,20 +44,11 @@ export async function POST(request) {
 
   try {
     const insights = await generateInsights(feedbacks);
-    const insightsData = {
+    return Response.json({
       insights,
       analyzedCount: feedbacks.length,
       projectName: project.name,
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Save to database on Project document using direct MongoDB collection driver
-    await Project.collection.updateOne(
-      { _id: new mongoose.Types.ObjectId(projectId) },
-      { $set: { aiInsights: insightsData } }
-    );
-
-    return Response.json(insightsData);
+    });
   } catch (error) {
     if (error.message === "AI_NOT_CONFIGURED") {
       return Response.json(

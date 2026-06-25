@@ -115,9 +115,9 @@ function LoginContent() {
     <Card className="w-full max-w-md border-neutral-200/60 shadow-xl bg-white/95 backdrop-blur-md">
       <CardHeader className="text-center">
         <div className="mx-auto mb-3">
-          <img
-            src="/logo.png"
-            alt="Pealo Logo"
+          <img 
+            src="/logo.png" 
+            alt="Pealo Logo" 
             className="w-12 h-12 object-contain mx-auto"
           />
         </div>

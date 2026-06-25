@@ -372,11 +372,10 @@
       <div id="fl-widget-modal">
         <div class="fl-modal-header">
           <div class="fl-modal-title">${widgetConfig.title || "Send us your feedback"}</div>
-          ${
-            widgetConfig.showSubtitle !== false
-              ? `<div class="fl-modal-subtitle">${widgetConfig.subtitle || "We appreciate your thoughts and ideas."}</div>`
-              : ""
-          }
+          ${widgetConfig.showSubtitle !== false
+        ? `<div class="fl-modal-subtitle">${widgetConfig.subtitle || "We appreciate your thoughts and ideas."}</div>`
+        : ""
+      }
         </div>
         <div class="fl-modal-body">
           <div class="fl-stars-container">
@@ -583,7 +582,7 @@
             break;
           }
         }
-        if (!matched) return; 
+        if (!matched) return;
       }
     }
 
@@ -592,7 +591,7 @@
       if (paths.length > 0) {
         for (const p of paths) {
           if (p === currentPath || (p.endsWith("/*") && currentPath.startsWith(p.slice(0, -2)))) {
-            return; 
+            return;
           }
         }
       }
