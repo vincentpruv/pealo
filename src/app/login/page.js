@@ -115,9 +115,11 @@ function LoginContent() {
     <Card className="w-full max-w-md border-neutral-200/60 shadow-xl bg-white/95 backdrop-blur-md">
       <CardHeader className="text-center">
         <div className="mx-auto mb-3">
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-sm mx-auto">
-            F
-          </div>
+          <img
+            src="/logo.png"
+            alt="Pealo Logo"
+            className="w-12 h-12 object-contain mx-auto"
+          />
         </div>
         <CardTitle className="text-2xl font-bold text-gray-900">Magic Login</CardTitle>
         <CardDescription>
