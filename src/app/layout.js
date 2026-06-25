@@ -13,18 +13,28 @@ export const metadata = {
   title: "Pealo — Collect User Feedback Effortlessly",
   description:
     "The simplest way to collect user feedback, bug reports, and suggestions. Install in one line of code. Get screenshots, metadata, and organized insights.",
+  metadataBase: new URL("https://usepealo.com"),
   openGraph: {
     title: "Pealo — Collect User Feedback Effortlessly",
     description:
       "The simplest way to collect user feedback, bug reports, and suggestions. Install in one line of code.",
     type: "website",
     locale: "en_US",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Pealo — Collect User Feedback Effortlessly",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Pealo — Collect User Feedback Effortlessly",
     description:
       "The simplest way to collect user feedback, bug reports, and suggestions.",
+    images: ["/og-image.png"],
   },
 };
 
