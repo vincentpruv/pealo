@@ -44,7 +44,7 @@ export default function RootLayout({ children }) {
       <body className="font-sans antialiased" suppressHydrationWarning>
         <NextTopLoader color="var(--primary)" showSpinner={false} />
         {children}
-        <Script src="/widget/feedback-widget.js" data-api-key="demo_key" strategy="lazyOnload" />
+        <Script src="/widget/feedback-widget.js" data-api-key="fl_8dc5496857d1ba0c11967e5968ae1ee97fdce1ccadee9c5a" strategy="lazyOnload" />
       </body>
     </html>
   );
