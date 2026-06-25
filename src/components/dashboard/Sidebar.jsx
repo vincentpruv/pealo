@@ -94,14 +94,12 @@ export function DashboardSidebar() {
             </SidebarMenuItem>
           )}
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="w-full flex items-center justify-center text-destructive hover:text-destructive"
-              >
-                <span>Sign out</span>
-              </button>
-            </SidebarMenuButton>
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="w-full flex items-center justify-center h-8 px-2 text-sm rounded-md text-destructive hover:bg-sidebar-accent hover:text-destructive font-medium transition-colors"
+            >
+              <span>Sign out</span>
+            </button>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
