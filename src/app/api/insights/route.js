@@ -3,6 +3,8 @@ import connectDB from "@/lib/mongodb";
 import Feedback from "@/models/Feedback";
 import Project from "@/models/Project";
 import { generateInsights } from "@/lib/ai";
+import mongoose from "mongoose";
+import { ObjectId } from "mongodb";
 
 export async function POST(request) {
   const session = await auth();
@@ -42,8 +44,48 @@ export async function POST(request) {
     );
   }
 
+  // Get MongoDB database object from Mongoose connection to query user usage
+  const db = mongoose.connection.db;
+  const userId = session.user.id;
+  const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+
+  let userDoc = null;
+  try {
+    userDoc = await db.collection("users").findOne({ _id: new ObjectId(userId) });
+  } catch (err) {
+    console.error("[Pealo] Error fetching user for AI usage check:", err);
+  }
+
+  if (userDoc) {
+    const usage = userDoc.aiUsage;
+    if (usage && usage.month === currentMonth && usage.count >= 20) {
+      return Response.json(
+        { error: "AI analysis limit reached (20 requests per month)." },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const insights = await generateInsights(feedbacks);
+
+    // Increment AI usage count
+    try {
+      if (userDoc && userDoc.aiUsage && userDoc.aiUsage.month === currentMonth) {
+        await db.collection("users").updateOne(
+          { _id: new ObjectId(userId) },
+          { $inc: { "aiUsage.count": 1 } }
+        );
+      } else {
+        await db.collection("users").updateOne(
+          { _id: new ObjectId(userId) },
+          { $set: { aiUsage: { month: currentMonth, count: 1 } } }
+        );
+      }
+    } catch (dbErr) {
+      console.error("[Pealo] Failed to increment AI usage count:", dbErr);
+    }
+
     return Response.json({
       insights,
       analyzedCount: feedbacks.length,
