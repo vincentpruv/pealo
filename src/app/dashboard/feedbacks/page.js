@@ -52,6 +52,18 @@ function FeedbacksPageContent() {
   const [cachedInsights, setCachedInsights] = useState({});
   const [insightsError, setInsightsError] = useState(null);
 
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("pealo_insights_open_map");
+      if (saved) {
+        setInsightsOpenMap(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error("Failed to load insights open map", e);
+    }
+  }, []);
+
   const insights = selectedProject ? cachedInsights[selectedProject._id] : null;
   const insightsOpen = selectedProject
     ? (insightsOpenMap[selectedProject._id] !== undefined
@@ -61,10 +73,18 @@ function FeedbacksPageContent() {
 
   const setInsightsOpen = (val) => {
     if (!selectedProject) return;
-    setInsightsOpenMap((prev) => ({
-      ...prev,
-      [selectedProject._id]: val,
-    }));
+    setInsightsOpenMap((prev) => {
+      const nextMap = {
+        ...prev,
+        [selectedProject._id]: val,
+      };
+      try {
+        localStorage.setItem("pealo_insights_open_map", JSON.stringify(nextMap));
+      } catch (e) {
+        console.error("Failed to save insights open map", e);
+      }
+      return nextMap;
+    });
   };
 
   console.log("DEBUG [FeedbacksPage]:", {
@@ -404,7 +424,16 @@ function FeedbacksPageContent() {
               <div>
                 <h3 className="font-semibold text-gray-900 text-sm">AI Insights</h3>
                 {insights && (
-                  <p className="text-xs text-muted-foreground">{insights.analyzedCount} feedbacks analyzed</p>
+                  <p className="text-xs text-muted-foreground">
+                    {insights.analyzedCount} feedbacks analyzed
+                    {insights.analyzedAt && (() => {
+                      const d = new Date(insights.analyzedAt);
+                      const day = d.getDate();
+                      const month = d.toLocaleDateString("en-US", { month: "long" }).toLowerCase();
+                      const year = d.getFullYear();
+                      return ` on ${day} ${month} ${year}`;
+                    })()}
+                  </p>
                 )}
               </div>
             </div>

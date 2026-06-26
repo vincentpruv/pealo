@@ -68,6 +68,8 @@ export async function POST(request) {
   try {
     const insights = await generateInsights(feedbacks);
 
+    const analyzedAt = new Date().toISOString();
+
     // Save insights to Project database doc
     await Project.updateOne(
       { _id: projectId },
@@ -77,6 +79,7 @@ export async function POST(request) {
             insights,
             analyzedCount: feedbacks.length,
             projectName: project.name,
+            analyzedAt,
           },
         },
       }
@@ -103,6 +106,7 @@ export async function POST(request) {
       insights,
       analyzedCount: feedbacks.length,
       projectName: project.name,
+      analyzedAt,
     });
   } catch (error) {
     if (error.message === "AI_NOT_CONFIGURED") {
