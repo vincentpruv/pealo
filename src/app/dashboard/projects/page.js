@@ -65,8 +65,9 @@ export default function ProjectsPage() {
   const getFavicon = (domain) => {
     if (!domain) return null;
     const clean = domain.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
-    return `https://${clean}/favicon.ico`;
+    return `https://icons.duckduckgo.com/ip3/${clean}.ico`;
   };
+
 
   return (
     <div className="space-y-6">

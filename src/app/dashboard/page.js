@@ -111,8 +111,9 @@ export default function DashboardPage() {
   const getFavicon = (domain) => {
     if (!domain) return null;
     const clean = domain.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
-    return `https://${clean}/favicon.ico`;
+    return `https://icons.duckduckgo.com/ip3/${clean}.ico`;
   };
+
 
 
   // SVG Chart Helper Variables
