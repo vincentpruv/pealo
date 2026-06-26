@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Copy, Check, Save, Trash2, Settings, Code, Palette, X, Sliders } from "lucide-react";
+import { ArrowLeft, Copy, Check, Save, Trash2, Settings, Code, Palette, X, Sliders, Plus, Globe } from "lucide-react";
 
 function isDarkColor(hex) {
   if (!hex) return true;
@@ -54,6 +54,64 @@ export default function ProjectDetailPage({ params }) {
   const [settingsSaved, setSettingsSaved] = useState(false);
   const isFirstRender = useRef(true);
   const isFirstRenderWebhook = useRef(true);
+
+  const [inputIncludePath, setInputIncludePath] = useState("");
+  const [inputExcludePath, setInputExcludePath] = useState("");
+
+  const includePathsList = widgetConfig.includePaths
+    ? widgetConfig.includePaths.split(",").map((p) => p.trim()).filter(Boolean)
+    : [];
+
+  const excludePathsList = widgetConfig.excludePaths
+    ? widgetConfig.excludePaths.split(",").map((p) => p.trim()).filter(Boolean)
+    : [];
+
+  const handleAddIncludePath = () => {
+    const trimmed = inputIncludePath.trim();
+    if (!trimmed) return;
+    const newPaths = trimmed.split(",").map((p) => p.trim()).filter(Boolean);
+    const updated = [...includePathsList];
+    newPaths.forEach((np) => {
+      let formatted = np;
+      if (!formatted.startsWith("/") && !formatted.startsWith("http") && formatted !== "*") {
+        formatted = "/" + formatted;
+      }
+      if (!updated.includes(formatted)) {
+        updated.push(formatted);
+      }
+    });
+    setWidgetConfig((prev) => ({ ...prev, includePaths: updated.join(", ") }));
+    setInputIncludePath("");
+  };
+
+  const handleAddExcludePath = () => {
+    const trimmed = inputExcludePath.trim();
+    if (!trimmed) return;
+    const newPaths = trimmed.split(",").map((p) => p.trim()).filter(Boolean);
+    const updated = [...excludePathsList];
+    newPaths.forEach((np) => {
+      let formatted = np;
+      if (!formatted.startsWith("/") && !formatted.startsWith("http") && formatted !== "*") {
+        formatted = "/" + formatted;
+      }
+      if (!updated.includes(formatted)) {
+        updated.push(formatted);
+      }
+    });
+    setWidgetConfig((prev) => ({ ...prev, excludePaths: updated.join(", ") }));
+    setInputExcludePath("");
+  };
+
+  const handleRemoveIncludePath = (indexToRemove) => {
+    const updated = includePathsList.filter((_, idx) => idx !== indexToRemove);
+    setWidgetConfig((prev) => ({ ...prev, includePaths: updated.join(", ") }));
+  };
+
+  const handleRemoveExcludePath = (indexToRemove) => {
+    const updated = excludePathsList.filter((_, idx) => idx !== indexToRemove);
+    setWidgetConfig((prev) => ({ ...prev, excludePaths: updated.join(", ") }));
+  };
+
 
   const [verifying, setVerifying] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
@@ -737,37 +795,129 @@ export default function ProjectDetailPage({ params }) {
               </p>
             </div>
 
-            <div className="rounded-xl border bg-card p-6 space-y-6 max-w-2xl">
+            <div className="rounded-xl border bg-card p-6 space-y-6 max-w-2xl shadow-xs">
+              {/* Include Paths */}
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none text-gray-900">Include paths</label>
-                <input
-                  type="text"
-                  placeholder="e.g. /app/*, /contact"
-                  value={widgetConfig.includePaths || ""}
-                  onChange={(e) => setWidgetConfig((prev) => ({ ...prev, includePaths: e.target.value }))}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-gray-400"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Separate multiple paths with commas. Use * for wildcards. If specified, the widget will ONLY appear on these pages.
+                <label className="block text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <Globe className="w-4 h-4 text-gray-400" /> Include paths
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={inputIncludePath}
+                    onChange={(e) => setInputIncludePath(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddIncludePath();
+                      }
+                    }}
+                    placeholder="e.g. /pricing (press Enter to add)"
+                    className="flex-1 h-10 px-3 py-2 border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddIncludePath}
+                    disabled={!inputIncludePath.trim()}
+                    className="px-4 py-2 bg-gray-950 hover:bg-gray-800 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                  >
+                    <Plus className="w-4 h-4" /> Add
+                  </button>
+                </div>
+
+                {includePathsList.length > 0 ? (
+                  <div className="space-y-2 pt-2">
+                    <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Include List ({includePathsList.length})</span>
+                    <div className="flex flex-wrap gap-2">
+                      {includePathsList.map((path, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 border text-sm font-medium text-gray-800 transition-colors group shadow-2xs"
+                        >
+                          <span>{path}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveIncludePath(idx)}
+                            className="text-gray-400 hover:text-rose-600 transition-colors p-0.5 rounded-md hover:bg-rose-50"
+                            title="Remove path"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5 text-xs text-amber-600 bg-amber-50/50 border border-amber-200/50 rounded-lg p-3 pt-2">
+                    <Globe className="w-4 h-4 shrink-0 text-amber-500" />
+                    <span>No include paths. The widget will appear on <strong>all pages</strong> by default.</span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                  If specified, the widget will ONLY appear on these pages. Use * for wildcards (e.g. <code className="bg-gray-100 px-1 py-0.5 rounded font-mono text-[10px]">/docs/*</code>).
                 </p>
               </div>
 
+              {/* Exclude Paths */}
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none text-gray-900">Exclude paths</label>
-                <input
-                  type="text"
-                  placeholder="e.g. /login, /admin/*"
-                  value={widgetConfig.excludePaths || ""}
-                  onChange={(e) => setWidgetConfig((prev) => ({ ...prev, excludePaths: e.target.value }))}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-gray-400"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Separate multiple paths with commas. The widget will NEVER appear on these pages, even if they match an include path.
+                <label className="block text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <Globe className="w-4 h-4 text-gray-400" /> Exclude paths
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={inputExcludePath}
+                    onChange={(e) => setInputExcludePath(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddExcludePath();
+                      }
+                    }}
+                    placeholder="e.g. /admin/* (press Enter to add)"
+                    className="flex-1 h-10 px-3 py-2 border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddExcludePath}
+                    disabled={!inputExcludePath.trim()}
+                    className="px-4 py-2 bg-gray-950 hover:bg-gray-800 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                  >
+                    <Plus className="w-4 h-4" /> Add
+                  </button>
+                </div>
+
+                {excludePathsList.length > 0 ? (
+                  <div className="space-y-2 pt-2">
+                    <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Exclude List ({excludePathsList.length})</span>
+                    <div className="flex flex-wrap gap-2">
+                      {excludePathsList.map((path, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 border text-sm font-medium text-gray-800 transition-colors group shadow-2xs"
+                        >
+                          <span>{path}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExcludePath(idx)}
+                            className="text-gray-400 hover:text-rose-600 transition-colors p-0.5 rounded-md hover:bg-rose-50"
+                            title="Remove path"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                  The widget will NEVER appear on these pages, even if they match an include path.
                 </p>
               </div>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
