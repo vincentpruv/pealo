@@ -249,11 +249,6 @@ function EventsPageContent() {
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Events for {selectedProject.name}</h1>
           <div className="flex items-center text-xs font-semibold">
-            {savedStatus === "saving" && (
-              <span className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 animate-pulse">
-                Saving...
-              </span>
-            )}
             {savedStatus === "error" && (
               <span className="flex items-center gap-1.5 text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
                 <AlertCircle className="w-3.5 h-3.5" /> Error saving
