@@ -505,9 +505,9 @@ function FeedbacksPageContent() {
                   {/* Segmented Progress Bar */}
                   <div className="h-3.5 w-full rounded-full flex overflow-hidden bg-gray-100">
                     <div 
-                      className="h-full bg-emerald-500 transition-all duration-500" 
-                      style={{ width: `${insights.insights.sentiment.positive}%` }} 
-                      title={`Positive: ${insights.insights.sentiment.positive}%`} 
+                      className="h-full bg-red-400 transition-all duration-500" 
+                      style={{ width: `${insights.insights.sentiment.negative}%` }} 
+                      title={`Negative: ${insights.insights.sentiment.negative}%`} 
                     />
                     <div 
                       className="h-full bg-gray-300 transition-all duration-500" 
@@ -515,25 +515,25 @@ function FeedbacksPageContent() {
                       title={`Neutral: ${insights.insights.sentiment.neutral}%`} 
                     />
                     <div 
-                      className="h-full bg-red-400 transition-all duration-500" 
-                      style={{ width: `${insights.insights.sentiment.negative}%` }} 
-                      title={`Negative: ${insights.insights.sentiment.negative}%`} 
+                      className="h-full bg-emerald-500 transition-all duration-500" 
+                      style={{ width: `${insights.insights.sentiment.positive}%` }} 
+                      title={`Positive: ${insights.insights.sentiment.positive}%`} 
                     />
                   </div>
 
                   {/* Columns */}
                   <div className="grid grid-cols-3 gap-2 text-center pt-1">
                     <div className="space-y-0.5">
-                      <div className="text-xl font-extrabold text-emerald-600">{insights.insights.sentiment.positive}%</div>
-                      <div className="text-xs font-semibold text-gray-500 flex items-center justify-center gap-1">😊 Positive</div>
+                      <div className="text-xl font-extrabold text-red-500">{insights.insights.sentiment.negative}%</div>
+                      <div className="text-xs font-semibold text-gray-500 flex items-center justify-center gap-1">😞 Negative</div>
                     </div>
                     <div className="space-y-0.5 border-x border-gray-100">
                       <div className="text-xl font-extrabold text-gray-500">{insights.insights.sentiment.neutral}%</div>
                       <div className="text-xs font-semibold text-gray-400 flex items-center justify-center gap-1">😐 Neutral</div>
                     </div>
                     <div className="space-y-0.5">
-                      <div className="text-xl font-extrabold text-red-500">{insights.insights.sentiment.negative}%</div>
-                      <div className="text-xs font-semibold text-gray-500 flex items-center justify-center gap-1">😞 Negative</div>
+                      <div className="text-xl font-extrabold text-emerald-600">{insights.insights.sentiment.positive}%</div>
+                      <div className="text-xs font-semibold text-gray-500 flex items-center justify-center gap-1">😊 Positive</div>
                     </div>
                   </div>
                 </div>
