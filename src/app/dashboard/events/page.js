@@ -157,7 +157,8 @@ function EventsPageContent() {
 
   const getFavicon = (domain) => {
     if (!domain) return null;
-    return `https://www.google.com/s2/favicons?sz=64&domain=${domain}`;
+    const clean = domain.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
+    return `https://${clean}/favicon.ico`;
   };
 
   if (loadingProjects) {
@@ -186,20 +187,25 @@ function EventsPageContent() {
                 className="group flex items-center justify-between rounded-xl border bg-card text-left p-6 hover:border-primary/50 hover:shadow-sm transition-all"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-gray-50 border flex items-center justify-center shrink-0 overflow-hidden">
-                    {project.domain ? (
+                  <div className="w-10 h-10 rounded-lg bg-gray-50 border flex items-center justify-center shrink-0 overflow-hidden relative">
+                    <Folder className="w-5 h-5 text-gray-400 absolute" />
+                    {project.domain && (
                       <img
                         src={getFavicon(project.domain)}
                         alt="Project favicon"
-                        className="w-6 h-6 object-contain"
+                        className="w-6 h-6 object-contain relative z-10 bg-gray-50"
                         onError={(e) => {
-                          e.target.style.display = "none";
+                          if (!e.target.src.includes("google.com")) {
+                            const clean = project.domain.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
+                            e.target.src = `https://www.google.com/s2/favicons?sz=64&domain=${clean}`;
+                          } else {
+                            e.target.style.display = "none";
+                          }
                         }}
                       />
-                    ) : (
-                      <Folder className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" />
                     )}
                   </div>
+
                   <div className="min-w-0">
                     <div className="font-semibold text-gray-950 truncate group-hover:text-primary transition-colors">
                       {project.name}

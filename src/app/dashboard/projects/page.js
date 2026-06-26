@@ -64,7 +64,8 @@ export default function ProjectsPage() {
 
   const getFavicon = (domain) => {
     if (!domain) return null;
-    return `https://www.google.com/s2/favicons?sz=64&domain=${domain}`;
+    const clean = domain.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
+    return `https://${clean}/favicon.ico`;
   };
 
   return (
@@ -93,18 +94,22 @@ export default function ProjectsPage() {
               className="group flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm p-6 hover:border-primary/50 transition-colors"
             >
               <div className="flex items-start gap-4 mb-4">
-                <div className="w-12 h-12 rounded-lg bg-gray-50 border flex items-center justify-center shrink-0 overflow-hidden">
-                  {project.domain ? (
+                <div className="w-12 h-12 rounded-lg bg-gray-50 border flex items-center justify-center shrink-0 overflow-hidden relative">
+                  <Folder className="w-6 h-6 text-gray-400 absolute" />
+                  {project.domain && (
                     <img
                       src={getFavicon(project.domain)}
                       alt={`${project.name} favicon`}
-                      className="w-8 h-8 object-contain"
+                      className="w-8 h-8 object-contain relative z-10 bg-gray-50"
                       onError={(e) => {
-                        e.target.style.display = "none";
+                        if (!e.target.src.includes("google.com")) {
+                          const clean = project.domain.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
+                          e.target.src = `https://www.google.com/s2/favicons?sz=64&domain=${clean}`;
+                        } else {
+                          e.target.style.display = "none";
+                        }
                       }}
                     />
-                  ) : (
-                    <Folder className="w-6 h-6 text-gray-400 group-hover:text-primary transition-colors" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -116,6 +121,7 @@ export default function ProjectsPage() {
                   </div>
                 </div>
               </div>
+
 
               <div className="space-y-2 mt-auto">
                 <div className="text-xs font-mono text-gray-700 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-lg w-fit flex items-center gap-1.5">
