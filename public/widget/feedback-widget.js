@@ -615,90 +615,113 @@
 
   // --- Auto Open Triggers ---
   function initTriggers() {
-    const rawTrigger = widgetConfig.autoOpenTrigger || "none";
-    const triggers = rawTrigger.split(",").map(t => t.trim()).filter(Boolean);
-    if (triggers.includes("none") || triggers.length === 0) return;
-
-    // Check if URL targeting matches for auto-opening
-    const currentPath = window.location.pathname;
-    if (widgetConfig.autoOpenPages && widgetConfig.autoOpenPages.trim() !== "") {
-      const paths = widgetConfig.autoOpenPages.split(",").map(p => p.trim()).filter(Boolean);
-      let matched = false;
-      for (const p of paths) {
-        if (p === currentPath || (p.endsWith("/*") && currentPath.startsWith(p.slice(0, -2)))) {
-          matched = true;
-          break;
+    let triggers = [];
+    if (widgetConfig.triggers && widgetConfig.triggers.length > 0) {
+      triggers = widgetConfig.triggers;
+    } else if (widgetConfig.autoOpenTrigger && widgetConfig.autoOpenTrigger !== "none") {
+      const types = widgetConfig.autoOpenTrigger.split(",").map(t => t.trim()).filter(Boolean);
+      triggers = types.map(t => {
+        let value = "";
+        if (t === "time" || t === "scroll") {
+          value = String(widgetConfig.autoOpenValue || 5);
+        } else if (t === "element") {
+          value = widgetConfig.autoOpenSelector || "";
         }
-      }
-      if (!matched) return; // If targeting is specified and we don't match, don't auto-open
-    }
-
-    if (triggers.includes("time")) {
-      const delay = (Number(widgetConfig.autoOpenValue) || 5) * 1000;
-      setTimeout(() => {
-        if (!isOpen) openModal();
-      }, delay);
-    }
-    
-    if (triggers.includes("scroll")) {
-      const targetPercent = Number(widgetConfig.autoOpenValue) || 50;
-      const handleScroll = () => {
-        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-        if (docHeight <= 0) return;
-        const scrollPercent = (window.scrollY / docHeight) * 100;
-        if (scrollPercent >= targetPercent) {
-          if (!isOpen) openModal();
-          window.removeEventListener("scroll", handleScroll);
-        }
-      };
-      window.addEventListener("scroll", handleScroll);
-    }
-    
-    if (triggers.includes("exit_intent")) {
-      const handleMouseLeave = (e) => {
-        if (e.clientY < 20) {
-          if (!isOpen) openModal();
-          document.removeEventListener("mouseleave", handleMouseLeave);
-        }
-      };
-      document.addEventListener("mouseleave", handleMouseLeave);
-    }
-    
-    if (triggers.includes("element")) {
-      const selector = widgetConfig.autoOpenSelector || "";
-      if (selector) {
-        const checkElement = () => {
-          try {
-            const el = document.querySelector(selector);
-            if (el) {
-              const observer = new IntersectionObserver((entries) => {
-                entries.forEach((entry) => {
-                  if (entry.isIntersecting) {
-                    if (!isOpen) openModal();
-                    observer.disconnect();
-                  }
-                });
-              });
-              observer.observe(el);
-              return true;
-            }
-          } catch (err) {
-            console.warn("[Pealo] Invalid CSS selector for element trigger:", selector, err);
-            return true; // stop polling on invalid selector syntax
-          }
-          return false;
+        return {
+          type: t,
+          value: value,
+          pages: widgetConfig.autoOpenPages || ""
         };
+      });
+    }
 
-        if (!checkElement()) {
-          const interval = setInterval(() => {
-            if (checkElement()) {
-              clearInterval(interval);
+    if (triggers.length === 0) return;
+
+    const currentPath = window.location.pathname;
+
+    triggers.forEach(tr => {
+      // Check per-trigger page targeting (if specified)
+      if (tr.pages && tr.pages.trim() !== "") {
+        const paths = tr.pages.split(",").map(p => p.trim()).filter(Boolean);
+        if (paths.length > 0) {
+          let matched = false;
+          for (const p of paths) {
+            if (p === currentPath || (p.endsWith("/*") && currentPath.startsWith(p.slice(0, -2)))) {
+              matched = true;
+              break;
             }
-          }, 1000);
-          setTimeout(() => clearInterval(interval), 15000);
+          }
+          if (!matched) return; // Skip this trigger on this page if it doesn't match
         }
       }
-    }
+
+      if (tr.type === "time") {
+        const delay = (Number(tr.value) || 5) * 1000;
+        setTimeout(() => {
+          if (!isOpen) openModal();
+        }, delay);
+      }
+      
+      if (tr.type === "scroll") {
+        const targetPercent = Number(tr.value) || 50;
+        const handleScroll = () => {
+          const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+          if (docHeight <= 0) return;
+          const scrollPercent = (window.scrollY / docHeight) * 100;
+          if (scrollPercent >= targetPercent) {
+            if (!isOpen) openModal();
+            window.removeEventListener("scroll", handleScroll);
+          }
+        };
+        window.addEventListener("scroll", handleScroll);
+      }
+      
+      if (tr.type === "exit_intent") {
+        const handleMouseLeave = (e) => {
+          if (e.clientY < 20) {
+            if (!isOpen) openModal();
+            document.removeEventListener("mouseleave", handleMouseLeave);
+          }
+        };
+        document.addEventListener("mouseleave", handleMouseLeave);
+      }
+      
+      if (tr.type === "element") {
+        const selector = tr.value || "";
+        if (selector) {
+          const checkElement = () => {
+            try {
+              const el = document.querySelector(selector);
+              if (el) {
+                const observer = new IntersectionObserver((entries) => {
+                  entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                      if (!isOpen) openModal();
+                      observer.disconnect();
+                    }
+                  });
+                });
+                observer.observe(el);
+                return true;
+              }
+            } catch (err) {
+              console.warn("[Pealo] Invalid CSS selector for element trigger:", selector, err);
+              return true; // stop polling on invalid selector syntax
+            }
+            return false;
+          };
+
+          if (!checkElement()) {
+            const interval = setInterval(() => {
+              if (checkElement()) {
+                clearInterval(interval);
+              }
+            }, 1000);
+            setTimeout(() => clearInterval(interval), 15000);
+          }
+        }
+      }
+    });
   }
 
   init();

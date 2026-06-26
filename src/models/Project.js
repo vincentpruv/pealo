@@ -40,6 +40,7 @@ const ProjectSchema = new mongoose.Schema(
       autoOpenValue: { type: Number, default: 0 },
       autoOpenPages: { type: String, default: "" },
       autoOpenSelector: { type: String, default: "" },
+      triggers: { type: mongoose.Schema.Types.Mixed, default: [] },
     },
 
     webhookUrl: {

@@ -29,50 +29,56 @@ function EventsPageContent() {
   const isFirstRender = useRef(true);
   const [savedStatus, setSavedStatus] = useState("saved"); // "saving" | "saved" | "error"
 
-  // Form states
-  const [autoOpenTrigger, setAutoOpenTrigger] = useState("none");
-  const [autoOpenValue, setAutoOpenValue] = useState(5);
-  const [autoOpenPages, setAutoOpenPages] = useState("");
-  const [autoOpenSelector, setAutoOpenSelector] = useState("");
-  const [inputPath, setInputPath] = useState("");
+  // New triggers array state
+  const [triggers, setTriggers] = useState([]);
+  
+  // Temporary states for text inputs of target pages for each trigger type
+  const [triggerInputPaths, setTriggerInputPaths] = useState({
+    time: "",
+    scroll: "",
+    exit_intent: "",
+    element: ""
+  });
 
-  const paths = autoOpenPages
-    ? autoOpenPages.split(",").map((p) => p.trim()).filter(Boolean)
-    : [];
-
-  const activeTriggers = autoOpenTrigger.split(",").map(t => t.trim()).filter(Boolean);
-
-  const handleToggleTrigger = (triggerName) => {
-    if (triggerName === "none") {
-      setAutoOpenTrigger("none");
+  const handleToggleTrigger = (type) => {
+    if (type === "none") {
+      setTriggers([]);
       return;
     }
-
-    let nextTriggers = activeTriggers.filter(t => t !== "none");
-    if (nextTriggers.includes(triggerName)) {
-      nextTriggers = nextTriggers.filter(t => t !== triggerName);
-    } else {
-      nextTriggers.push(triggerName);
-    }
-
-    if (nextTriggers.length === 0) {
-      setAutoOpenTrigger("none");
-    } else {
-      setAutoOpenTrigger(nextTriggers.join(","));
-    }
+    setTriggers(prev => {
+      const exists = prev.some(t => t.type === type);
+      if (exists) {
+        return prev.filter(t => t.type !== type);
+      } else {
+        let defaultValue = "";
+        if (type === "time") defaultValue = "5";
+        if (type === "scroll") defaultValue = "50";
+        if (type === "element") defaultValue = "#pricing";
+        return [...prev, { type, value: defaultValue, pages: "" }];
+      }
+    });
   };
 
-  const handleAddPath = () => {
-    const trimmed = inputPath.trim();
+  const handleUpdateTriggerField = (type, field, val) => {
+    setTriggers(prev => prev.map(t => t.type === type ? { ...t, [field]: val } : t));
+  };
+
+  const handleAddTriggerPath = (type) => {
+    const rawInput = triggerInputPaths[type] || "";
+    const trimmed = rawInput.trim();
     if (!trimmed) return;
-    
-    // Support comma-separated paste
-    const newPaths = trimmed.split(",").map((p) => p.trim()).filter(Boolean);
-    const updated = [...paths];
-    
-    newPaths.forEach((np) => {
+
+    const newPaths = trimmed.split(",").map(p => p.trim()).filter(Boolean);
+    const trigger = triggers.find(tr => tr.type === type);
+    if (!trigger) return;
+
+    const existingPaths = trigger.pages
+      ? trigger.pages.split(",").map(p => p.trim()).filter(Boolean)
+      : [];
+
+    const updated = [...existingPaths];
+    newPaths.forEach(np => {
       let formatted = np;
-      // Auto prepending "/" for standard paths
       if (!formatted.startsWith("/") && !formatted.startsWith("http") && formatted !== "*") {
         formatted = "/" + formatted;
       }
@@ -80,21 +86,21 @@ function EventsPageContent() {
         updated.push(formatted);
       }
     });
-    
-    setAutoOpenPages(updated.join(", "));
-    setInputPath("");
+
+    handleUpdateTriggerField(type, "pages", updated.join(", "));
+    setTriggerInputPaths(prev => ({ ...prev, [type]: "" }));
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddPath();
-    }
-  };
+  const handleRemoveTriggerPath = (type, idxToRemove) => {
+    const trigger = triggers.find(tr => tr.type === type);
+    if (!trigger) return;
 
-  const handleRemovePath = (indexToRemove) => {
-    const updated = paths.filter((_, idx) => idx !== indexToRemove);
-    setAutoOpenPages(updated.join(", "));
+    const existingPaths = trigger.pages
+      ? trigger.pages.split(",").map(p => p.trim()).filter(Boolean)
+      : [];
+
+    const updated = existingPaths.filter((_, idx) => idx !== idxToRemove);
+    handleUpdateTriggerField(type, "pages", updated.join(", "));
   };
 
   // 1. Fetch user projects on mount
@@ -124,10 +130,30 @@ function EventsPageContent() {
     if (selectedProject) {
       isFirstRender.current = true;
       const config = selectedProject.widgetConfig || {};
-      setAutoOpenTrigger(config.autoOpenTrigger || "none");
-      setAutoOpenValue(config.autoOpenValue !== undefined ? config.autoOpenValue : 5);
-      setAutoOpenPages(config.autoOpenPages || "");
-      setAutoOpenSelector(config.autoOpenSelector || "");
+      
+      const loadedTriggers = config.triggers && config.triggers.length > 0
+        ? config.triggers
+        : (() => {
+            if (config.autoOpenTrigger && config.autoOpenTrigger !== "none") {
+              const types = config.autoOpenTrigger.split(",").map(t => t.trim()).filter(Boolean);
+              return types.map(t => {
+                let value = "";
+                if (t === "time" || t === "scroll") {
+                  value = String(config.autoOpenValue !== undefined ? config.autoOpenValue : 5);
+                } else if (t === "element") {
+                  value = config.autoOpenSelector || "";
+                }
+                return {
+                  type: t,
+                  value,
+                  pages: config.autoOpenPages || ""
+                };
+              });
+            }
+            return [];
+          })();
+
+      setTriggers(loadedTriggers);
       setSavedStatus("saved");
     }
   }, [selectedProject]);
@@ -136,12 +162,21 @@ function EventsPageContent() {
     if (!selectedProject) return;
     setSavedStatus("saving");
 
+    // Maintain legacy fields for backwards compatibility/graceful degradation
+    const autoOpenTrigger = triggers.length === 0 ? "none" : triggers.map(t => t.type).join(",");
+    const firstNumericTrigger = triggers.find(t => t.type === "time" || t.type === "scroll");
+    const autoOpenValue = firstNumericTrigger ? (Number(firstNumericTrigger.value) || 5) : 5;
+    const firstElementTrigger = triggers.find(t => t.type === "element");
+    const autoOpenSelector = firstElementTrigger ? firstElementTrigger.value : "";
+    const autoOpenPages = triggers.length > 0 ? triggers[0].pages : "";
+
     const updatedConfig = {
       ...(selectedProject.widgetConfig || {}),
       autoOpenTrigger,
-      autoOpenValue: Number(autoOpenValue) || 0,
-      autoOpenPages,
+      autoOpenValue,
       autoOpenSelector,
+      autoOpenPages,
+      triggers,
     };
 
     try {
@@ -153,8 +188,8 @@ function EventsPageContent() {
 
       if (res.ok) {
         const updatedProject = await res.json();
-        // Update list
         setProjects(prev => prev.map(p => p._id === updatedProject._id ? updatedProject : p));
+        setSelectedProject(updatedProject);
         setSavedStatus("saved");
       } else {
         setSavedStatus("error");
@@ -179,7 +214,7 @@ function EventsPageContent() {
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [autoOpenTrigger, autoOpenValue, autoOpenPages, autoOpenSelector]);
+  }, [triggers]);
 
   const getFavicon = (domain) => {
     if (!domain) return null;
@@ -291,14 +326,13 @@ function EventsPageContent() {
           <div className="p-6 border-b border-border bg-gray-50/50">
             <h2 className="text-lg font-semibold text-gray-900">Select Event Trigger</h2>
             <p className="text-sm text-muted-foreground">Choose what event triggers the widget popup</p>
-          </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
+          </div          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
             {/* Left Column: Triggers Selection (2/3 width) */}
             <div className="p-6 md:col-span-2">
               <div className="grid gap-4 sm:grid-cols-2">
                 {/* None */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  activeTriggers.includes("none") 
+                  triggers.length === 0 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
                     : "border-border bg-white"
                 }`}>
@@ -306,7 +340,7 @@ function EventsPageContent() {
                     type="checkbox"
                     name="autoOpenTrigger"
                     value="none"
-                    checked={activeTriggers.includes("none")}
+                    checked={triggers.length === 0}
                     onChange={() => handleToggleTrigger("none")}
                     className="sr-only"
                   />
@@ -323,7 +357,7 @@ function EventsPageContent() {
 
                 {/* Time Delay */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  activeTriggers.includes("time") 
+                  triggers.some(t => t.type === "time") 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
                     : "border-border bg-white"
                 }`}>
@@ -331,7 +365,7 @@ function EventsPageContent() {
                     type="checkbox"
                     name="autoOpenTrigger"
                     value="time"
-                    checked={activeTriggers.includes("time")}
+                    checked={triggers.some(t => t.type === "time")}
                     onChange={() => handleToggleTrigger("time")}
                     className="sr-only"
                   />
@@ -348,7 +382,7 @@ function EventsPageContent() {
 
                 {/* Scroll Depth */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  activeTriggers.includes("scroll") 
+                  triggers.some(t => t.type === "scroll") 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
                     : "border-border bg-white"
                 }`}>
@@ -356,7 +390,7 @@ function EventsPageContent() {
                     type="checkbox"
                     name="autoOpenTrigger"
                     value="scroll"
-                    checked={activeTriggers.includes("scroll")}
+                    checked={triggers.some(t => t.type === "scroll")}
                     onChange={() => handleToggleTrigger("scroll")}
                     className="sr-only"
                   />
@@ -373,7 +407,7 @@ function EventsPageContent() {
 
                 {/* Exit Intent */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  activeTriggers.includes("exit_intent") 
+                  triggers.some(t => t.type === "exit_intent") 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
                     : "border-border bg-white"
                 }`}>
@@ -381,7 +415,7 @@ function EventsPageContent() {
                     type="checkbox"
                     name="autoOpenTrigger"
                     value="exit_intent"
-                    checked={activeTriggers.includes("exit_intent")}
+                    checked={triggers.some(t => t.type === "exit_intent")}
                     onChange={() => handleToggleTrigger("exit_intent")}
                     className="sr-only"
                   />
@@ -398,7 +432,7 @@ function EventsPageContent() {
 
                 {/* Element Selector */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  activeTriggers.includes("element") 
+                  triggers.some(t => t.type === "element") 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
                     : "border-border bg-white"
                 }`}>
@@ -406,7 +440,7 @@ function EventsPageContent() {
                     type="checkbox"
                     name="autoOpenTrigger"
                     value="element"
-                    checked={activeTriggers.includes("element")}
+                    checked={triggers.some(t => t.type === "element")}
                     onChange={() => handleToggleTrigger("element")}
                     className="sr-only"
                   />
@@ -424,8 +458,8 @@ function EventsPageContent() {
             </div>
 
             {/* Right Column: Settings Panel (1/3 width) */}
-            <div className="p-6 md:col-span-1 bg-gray-50/30 flex flex-col justify-start gap-5 overflow-y-auto max-h-[460px] min-h-[220px]">
-              {(activeTriggers.includes("none") || activeTriggers.length === 0) && (
+            <div className="p-6 md:col-span-1 bg-gray-50/30 flex flex-col justify-start gap-6 overflow-y-auto max-h-[580px] min-h-[220px]">
+              {triggers.length === 0 && (
                 <div className="flex flex-col items-center justify-center text-center p-4 text-muted-foreground my-auto">
                   <Ban className="w-8 h-8 text-gray-300 mb-2.5" />
                   <span className="font-semibold text-sm text-gray-900">No Auto-Open</span>
@@ -435,159 +469,127 @@ function EventsPageContent() {
                 </div>
               )}
 
-              {activeTriggers.includes("exit_intent") && (
-                <div className="rounded-xl border bg-white p-4 shadow-2xs space-y-1 animate-in fade-in duration-200">
-                  <span className="font-semibold text-xs text-gray-400 uppercase tracking-wider block flex items-center gap-1.5">
-                    🚪 Exit Intent Active
-                  </span>
-                  <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                    Widget appears automatically when the user moves their mouse to leave the tab.
-                  </p>
-                </div>
-              )}
+              {/* Time Delay Config */}
+              {triggers.map((tr) => {
+                const paths = tr.pages
+                  ? tr.pages.split(",").map((p) => p.trim()).filter(Boolean)
+                  : [];
 
-              {activeTriggers.includes("time") && (
-                <div className="space-y-3.5 rounded-xl border bg-white p-4 shadow-2xs animate-in fade-in duration-200">
-                  <div className="space-y-1">
-                    <span className="font-semibold text-sm text-gray-900 block">Time Delay</span>
-                    <span className="text-xs text-muted-foreground block">Adjust the delay before opening the popup</span>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">Delay (seconds)</label>
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="number"
-                        min="1"
-                        max="300"
-                        value={autoOpenValue}
-                        onChange={(e) => setAutoOpenValue(e.target.value)}
-                        className="w-24 px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                      />
-                      <span className="text-sm text-muted-foreground">seconds</span>
+                return (
+                  <div key={tr.type} className="space-y-4 rounded-xl border bg-white p-5 shadow-2xs animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <span className="font-bold text-sm text-gray-900 flex items-center gap-1.5 capitalize">
+                        {tr.type === "time" && <><Clock className="w-4 h-4 text-blue-600" /> Time Delay</>}
+                        {tr.type === "scroll" && <><Move className="w-4 h-4 text-purple-600" /> Scroll Depth</>}
+                        {tr.type === "exit_intent" && <><LogOut className="w-4 h-4 text-orange-500 rotate-270" /> Exit Intent</>}
+                        {tr.type === "element" && <><Target className="w-4 h-4 text-emerald-600" /> Element Selector</>}
+                      </span>
                     </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    The widget will appear automatically <strong>{autoOpenValue || 5} seconds</strong> after the page loads.
-                  </p>
-                </div>
-              )}
 
-              {activeTriggers.includes("scroll") && (
-                <div className="space-y-3.5 rounded-xl border bg-white p-4 shadow-2xs animate-in fade-in duration-200">
-                  <div className="space-y-1">
-                    <span className="font-semibold text-sm text-gray-900 block">Scroll Depth</span>
-                    <span className="text-xs text-muted-foreground block">Adjust how far down the user must scroll</span>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">Scroll Depth (%)</label>
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="number"
-                        min="5"
-                        max="100"
-                        value={autoOpenValue}
-                        onChange={(e) => setAutoOpenValue(e.target.value)}
-                        className="w-24 px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                      />
-                      <span className="text-sm text-muted-foreground">% scrolled</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    The widget will pop up once the visitor scrolls past <strong>{autoOpenValue || 50}%</strong> of the page height.
-                  </p>
-                </div>
-              )}
+                    {/* Trigger Value Inputs */}
+                    {tr.type === "time" && (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">Delay (seconds)</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max="300"
+                            value={tr.value || "5"}
+                            onChange={(e) => handleUpdateTriggerField("time", "value", e.target.value)}
+                            className="w-24 px-3 py-1.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          />
+                          <span className="text-xs text-muted-foreground">seconds</span>
+                        </div>
+                      </div>
+                    )}
 
-              {activeTriggers.includes("element") && (
-                <div className="space-y-3.5 rounded-xl border bg-white p-4 shadow-2xs animate-in fade-in duration-200">
-                  <div className="space-y-1">
-                    <span className="font-semibold text-sm text-gray-900 block">Element Selector</span>
-                    <span className="text-xs text-muted-foreground block">Trigger when an element is visible on screen</span>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">CSS Selector</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. #pricing, .cta-btn, footer"
-                      value={autoOpenSelector}
-                      onChange={(e) => setAutoOpenSelector(e.target.value)}
-                      className="w-full px-3 py-2.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-400"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    The widget will pop up automatically as soon as the element matching <code className="bg-gray-100 px-1 py-0.5 rounded font-mono text-[10px]">{autoOpenSelector || "your selector"}</code> is scrolled into view.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+                    {tr.type === "scroll" && (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">Scroll Depth (%)</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="5"
+                            max="100"
+                            value={tr.value || "50"}
+                            onChange={(e) => handleUpdateTriggerField("scroll", "value", e.target.value)}
+                            className="w-24 px-3 py-1.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          />
+                          <span className="text-xs text-muted-foreground">% scrolled</span>
+                        </div>
+                      </div>
+                    )}
 
-        {/* Page Targeting Options */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
-          <div className="p-6 border-b border-border bg-gray-50/50">
-            <h2 className="text-lg font-semibold text-gray-900">Target Specific Pages (Optional)</h2>
-            <p className="text-sm text-muted-foreground">Control on which pages the auto-open behavior is active</p>
-          </div>
-          <div className="p-6 space-y-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                <Globe className="w-4 h-4 text-gray-400" /> Page Paths
-              </label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    value={inputPath}
-                    onChange={(e) => setInputPath(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="e.g. /pricing (press Enter to add)"
-                    className="w-full px-3 py-2.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAddPath}
-                  disabled={!inputPath.trim()}
-                  className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
-                >
-                  <Plus className="w-4 h-4" /> Add
-                </button>
-              </div>
-              
-              {/* Active paths tags/chips */}
-              {paths.length > 0 ? (
-                <div className="space-y-2 pt-2">
-                  <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Pages List ({paths.length})</span>
-                  <div className="flex flex-wrap gap-2">
-                    {paths.map((path, idx) => (
-                      <div 
-                        key={idx} 
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 border text-sm font-medium text-gray-800 transition-colors group shadow-2xs"
-                      >
-                        <span>{path}</span>
+                    {tr.type === "element" && (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">CSS Selector</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. #pricing, .cta-btn, footer"
+                          value={tr.value || ""}
+                          onChange={(e) => handleUpdateTriggerField("element", "value", e.target.value)}
+                          className="w-full px-3 py-1.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-400"
+                        />
+                      </div>
+                    )}
+
+                    {/* Per-Trigger Target Pages */}
+                    <div className="space-y-2 pt-2 border-t border-gray-100">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1">
+                        <Globe className="w-3.5 h-3.5 text-gray-400" /> Target Pages (Optional)
+                      </label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={triggerInputPaths[tr.type] || ""}
+                          onChange={(e) => setTriggerInputPaths(prev => ({ ...prev, [tr.type]: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddTriggerPath(tr.type);
+                            }
+                          }}
+                          placeholder="e.g. /pricing (Press Enter)"
+                          className="flex-1 px-2.5 py-1.5 border rounded-lg text-xs bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-400"
+                        />
                         <button
                           type="button"
-                          onClick={() => handleRemovePath(idx)}
-                          className="text-gray-400 hover:text-rose-600 transition-colors p-0.5 rounded-md hover:bg-rose-50"
-                          title="Remove path"
+                          onClick={() => handleAddTriggerPath(tr.type)}
+                          disabled={!(triggerInputPaths[tr.type] || "").trim()}
+                          className="px-3 py-1.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 shrink-0"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          Add
                         </button>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5 text-xs text-amber-600 bg-amber-50/50 border border-amber-200/50 rounded-lg p-3 pt-2">
-                  <Globe className="w-4 h-4 shrink-0 text-amber-500" />
-                  <span>No paths configured. The auto-open trigger will run on <strong>all pages</strong> of your website.</span>
-                </div>
-              )}
 
-              <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                Press Enter to add path. You can use wildcards at the end of paths (e.g. <code className="bg-gray-100 px-1 py-0.5 rounded font-mono text-[10px]">/docs/*</code>).
-              </p>
+                      {paths.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5 pt-1.5">
+                          {paths.map((path, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-50 border text-[11px] font-medium text-gray-800"
+                            >
+                              <span>{path}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveTriggerPath(tr.type, idx)}
+                                className="text-gray-400 hover:text-rose-600 transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="block text-[11px] text-amber-600 bg-amber-50/50 border border-amber-100/50 rounded-lg p-2 mt-1">
+                          Runs on <strong>all pages</strong> of your website.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
