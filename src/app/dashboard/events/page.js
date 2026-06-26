@@ -14,7 +14,8 @@ import {
   Check, 
   AlertCircle,
   X,
-  Plus
+  Plus,
+  Target
 } from "lucide-react";
 import { PealoButton } from "@/components/ui/PealoButton";
 
@@ -32,6 +33,7 @@ function EventsPageContent() {
   const [autoOpenTrigger, setAutoOpenTrigger] = useState("none");
   const [autoOpenValue, setAutoOpenValue] = useState(5);
   const [autoOpenPages, setAutoOpenPages] = useState("");
+  const [autoOpenSelector, setAutoOpenSelector] = useState("");
   const [inputPath, setInputPath] = useState("");
 
   const paths = autoOpenPages
@@ -103,6 +105,7 @@ function EventsPageContent() {
       setAutoOpenTrigger(config.autoOpenTrigger || "none");
       setAutoOpenValue(config.autoOpenValue !== undefined ? config.autoOpenValue : 5);
       setAutoOpenPages(config.autoOpenPages || "");
+      setAutoOpenSelector(config.autoOpenSelector || "");
       setSavedStatus("saved");
     }
   }, [selectedProject]);
@@ -116,6 +119,7 @@ function EventsPageContent() {
       autoOpenTrigger,
       autoOpenValue: Number(autoOpenValue) || 0,
       autoOpenPages,
+      autoOpenSelector,
     };
 
     try {
@@ -153,7 +157,7 @@ function EventsPageContent() {
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [autoOpenTrigger, autoOpenValue, autoOpenPages]);
+  }, [autoOpenTrigger, autoOpenValue, autoOpenPages, autoOpenSelector]);
 
   const getFavicon = (domain) => {
     if (!domain) return null;
@@ -344,9 +348,7 @@ function EventsPageContent() {
                       Open the widget when the user scrolls down a specific portion of the page.
                     </span>
                   </div>
-                </label>
-
-                {/* Exit Intent */}
+                </label>                 {/* Exit Intent */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
                   autoOpenTrigger === "exit_intent" 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
@@ -367,6 +369,31 @@ function EventsPageContent() {
                     <span className="block font-semibold text-sm text-gray-900">Exit Intent</span>
                     <span className="block text-xs text-muted-foreground mt-0.5">
                       Trigger widget when the cursor moves to exit the browser tab (prevent churn).
+                    </span>
+                  </div>
+                </label>
+
+                {/* Element Selector */}
+                <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
+                  autoOpenTrigger === "element" 
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
+                    : "border-border bg-white"
+                }`}>
+                  <input
+                    type="radio"
+                    name="autoOpenTrigger"
+                    value="element"
+                    checked={autoOpenTrigger === "element"}
+                    onChange={(e) => setAutoOpenTrigger(e.target.value)}
+                    className="sr-only"
+                  />
+                  <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                    <Target className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <span className="block font-semibold text-sm text-gray-900">Element Selector</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">
+                      Trigger widget when a specific HTML element or CSS selector becomes visible.
                     </span>
                   </div>
                 </label>
@@ -443,6 +470,28 @@ function EventsPageContent() {
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     The widget will pop up once the visitor scrolls past <strong>{autoOpenValue || 50}%</strong> of the page height.
+                  </p>
+                </div>
+              )}
+
+              {autoOpenTrigger === "element" && (
+                <div className="space-y-3.5 animate-in fade-in duration-200">
+                  <div className="space-y-1">
+                    <span className="font-semibold text-sm text-gray-900 block">Element Selector</span>
+                    <span className="text-xs text-muted-foreground block">Trigger when an element is visible on screen</span>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">CSS Selector</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. #pricing, .cta-btn, footer"
+                      value={autoOpenSelector}
+                      onChange={(e) => setAutoOpenSelector(e.target.value)}
+                      className="w-full px-3 py-2.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-400"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    The widget will pop up automatically as soon as the element matching <code className="bg-gray-100 px-1 py-0.5 rounded font-mono text-[10px]">{autoOpenSelector || "your selector"}</code> is scrolled into view.
                   </p>
                 </div>
               )}

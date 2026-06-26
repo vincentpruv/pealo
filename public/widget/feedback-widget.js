@@ -657,6 +657,40 @@
         }
       };
       document.addEventListener("mouseleave", handleMouseLeave);
+    } else if (trigger === "element") {
+      const selector = widgetConfig.autoOpenSelector || "";
+      if (selector) {
+        const checkElement = () => {
+          try {
+            const el = document.querySelector(selector);
+            if (el) {
+              const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                  if (entry.isIntersecting) {
+                    if (!isOpen) openModal();
+                    observer.disconnect();
+                  }
+                });
+              });
+              observer.observe(el);
+              return true;
+            }
+          } catch (err) {
+            console.warn("[Pealo] Invalid CSS selector for element trigger:", selector, err);
+            return true; // stop polling on invalid selector syntax
+          }
+          return false;
+        };
+
+        if (!checkElement()) {
+          const interval = setInterval(() => {
+            if (checkElement()) {
+              clearInterval(interval);
+            }
+          }, 1000);
+          setTimeout(() => clearInterval(interval), 15000);
+        }
+      }
     }
   }
 
