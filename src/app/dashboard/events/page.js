@@ -194,7 +194,7 @@ function EventsPageContent() {
                       <img
                         src={getFavicon(project.domain)}
                         alt="Project favicon"
-                        className="w-6 h-6 object-contain relative z-10 bg-gray-50"
+                        className="w-full h-full object-contain p-1.5 relative z-10 bg-gray-50"
                         onError={(e) => {
                           if (!e.target.src.includes("google.com")) {
                             const clean = project.domain.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
@@ -206,6 +206,7 @@ function EventsPageContent() {
                       />
                     )}
                   </div>
+
 
                   <div className="min-w-0">
                     <div className="font-semibold text-gray-950 truncate group-hover:text-primary transition-colors">

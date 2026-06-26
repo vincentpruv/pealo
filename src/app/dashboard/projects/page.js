@@ -101,7 +101,7 @@ export default function ProjectsPage() {
                     <img
                       src={getFavicon(project.domain)}
                       alt={`${project.name} favicon`}
-                      className="w-8 h-8 object-contain relative z-10 bg-gray-50"
+                      className="w-full h-full object-contain p-2 relative z-10 bg-gray-50"
                       onError={(e) => {
                         if (!e.target.src.includes("google.com")) {
                           const clean = project.domain.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
@@ -113,6 +113,7 @@ export default function ProjectsPage() {
                     />
                   )}
                 </div>
+
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-lg text-gray-950 truncate group-hover:text-primary transition-colors">
                     {project.name}
