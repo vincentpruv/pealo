@@ -56,7 +56,7 @@ function FeedbacksPageContent() {
   const insightsOpen = selectedProject
     ? (insightsOpenMap[selectedProject._id] !== undefined
         ? insightsOpenMap[selectedProject._id]
-        : !!insights)
+        : false)
     : false;
 
   const setInsightsOpen = (val) => {
