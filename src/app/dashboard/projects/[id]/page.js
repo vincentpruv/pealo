@@ -909,10 +909,12 @@ export default function ProjectDetailPage({ params }) {
                       ))}
                     </div>
                   </div>
+                ) : null}
                 <p className="text-xs text-muted-foreground leading-relaxed pt-1">
                   The widget will NEVER appear on these pages, even if they match an include path.
                 </p>
               </div>
+
 
               {/* Device Visibility */}
               <div className="space-y-3 pt-4 border-t border-gray-100">
