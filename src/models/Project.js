@@ -34,10 +34,13 @@ const ProjectSchema = new mongoose.Schema(
       subtitle: { type: String, default: "We appreciate your thoughts and ideas." },
       includePaths: { type: String, default: "" },
       excludePaths: { type: String, default: "" },
+      showOnDesktop: { type: Boolean, default: true },
+      showOnMobile: { type: Boolean, default: true },
       autoOpenTrigger: { type: String, enum: ["none", "time", "scroll", "exit_intent"], default: "none" },
       autoOpenValue: { type: Number, default: 0 },
       autoOpenPages: { type: String, default: "" },
     },
+
     webhookUrl: {
       type: String,
       trim: true,

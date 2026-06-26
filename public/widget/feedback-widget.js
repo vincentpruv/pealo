@@ -25,6 +25,8 @@
     showSubtitle: true,
     subtitle: "We appreciate your thoughts and ideas.",
     position: "right",
+    showOnDesktop: true,
+    showOnMobile: true,
   };
 
   // --- Luminance helper ---
@@ -568,6 +570,15 @@
       }
     } catch (e) {
       console.warn("[Pealo] Could not retrieve widget config dynamically. Using defaults.", e);
+    }
+
+    // Device Visibility check
+    const isMobile = window.innerWidth < 768;
+    if (isMobile && widgetConfig.showOnMobile === false) {
+      return;
+    }
+    if (!isMobile && widgetConfig.showOnDesktop === false) {
+      return;
     }
 
     const currentPath = window.location.pathname;

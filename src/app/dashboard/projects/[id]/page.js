@@ -909,14 +909,42 @@ export default function ProjectDetailPage({ params }) {
                       ))}
                     </div>
                   </div>
-                ) : null}
                 <p className="text-xs text-muted-foreground leading-relaxed pt-1">
                   The widget will NEVER appear on these pages, even if they match an include path.
                 </p>
               </div>
+
+              {/* Device Visibility */}
+              <div className="space-y-3 pt-4 border-t border-gray-100">
+                <label className="block text-sm font-semibold text-gray-900">Device visibility</label>
+                <p className="text-xs text-muted-foreground">
+                  Choose on which devices the widget floating button should be displayed.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={widgetConfig.showOnDesktop !== false}
+                      onChange={(e) => setWidgetConfig((prev) => ({ ...prev, showOnDesktop: e.target.checked }))}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20 cursor-pointer"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Computer view (Desktop)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={widgetConfig.showOnMobile !== false}
+                      onChange={(e) => setWidgetConfig((prev) => ({ ...prev, showOnMobile: e.target.checked }))}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20 cursor-pointer"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Mobile view</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         )}
+
 
       </div>
     </div>
