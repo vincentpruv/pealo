@@ -930,7 +930,7 @@ export default function ProjectDetailPage({ params }) {
                       onChange={(e) => setWidgetConfig((prev) => ({ ...prev, showOnDesktop: e.target.checked }))}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20 cursor-pointer"
                     />
-                    <span className="text-sm font-medium text-gray-700">Computer view (Desktop)</span>
+                    <span className="text-sm font-medium text-gray-700">Desktop view</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
