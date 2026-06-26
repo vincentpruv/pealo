@@ -4,7 +4,6 @@ import Feedback from "@/models/Feedback";
 import Project from "@/models/Project";
 import { generateInsights } from "@/lib/ai";
 import mongoose from "mongoose";
-import { ObjectId } from "mongodb";
 
 export async function POST(request) {
   const session = await auth();
@@ -51,7 +50,7 @@ export async function POST(request) {
 
   let userDoc = null;
   try {
-    userDoc = await db.collection("users").findOne({ _id: new ObjectId(userId) });
+    userDoc = await db.collection("users").findOne({ _id: new mongoose.Types.ObjectId(userId) });
   } catch (err) {
     console.error("[Pealo] Error fetching user for AI usage check:", err);
   }
@@ -69,16 +68,30 @@ export async function POST(request) {
   try {
     const insights = await generateInsights(feedbacks);
 
+    // Save insights to Project database doc
+    await Project.updateOne(
+      { _id: projectId },
+      {
+        $set: {
+          aiInsights: {
+            insights,
+            analyzedCount: feedbacks.length,
+            projectName: project.name,
+          },
+        },
+      }
+    );
+
     // Increment AI usage count
     try {
       if (userDoc && userDoc.aiUsage && userDoc.aiUsage.month === currentMonth) {
         await db.collection("users").updateOne(
-          { _id: new ObjectId(userId) },
+          { _id: new mongoose.Types.ObjectId(userId) },
           { $inc: { "aiUsage.count": 1 } }
         );
       } else {
         await db.collection("users").updateOne(
-          { _id: new ObjectId(userId) },
+          { _id: new mongoose.Types.ObjectId(userId) },
           { $set: { aiUsage: { month: currentMonth, count: 1 } } }
         );
       }
