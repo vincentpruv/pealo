@@ -326,7 +326,8 @@ function EventsPageContent() {
           <div className="p-6 border-b border-border bg-gray-50/50">
             <h2 className="text-lg font-semibold text-gray-900">Select Event Trigger</h2>
             <p className="text-sm text-muted-foreground">Choose what event triggers the widget popup</p>
-          </div          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
             {/* Left Column: Triggers Selection (2/3 width) */}
             <div className="p-6 md:col-span-2">
               <div className="grid gap-4 sm:grid-cols-2">
