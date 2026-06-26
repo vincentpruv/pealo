@@ -36,7 +36,7 @@ const ProjectSchema = new mongoose.Schema(
       excludePaths: { type: String, default: "" },
       showOnDesktop: { type: Boolean, default: true },
       showOnMobile: { type: Boolean, default: true },
-      autoOpenTrigger: { type: String, enum: ["none", "time", "scroll", "exit_intent", "element"], default: "none" },
+      autoOpenTrigger: { type: String, default: "none" },
       autoOpenValue: { type: Number, default: 0 },
       autoOpenPages: { type: String, default: "" },
       autoOpenSelector: { type: String, default: "" },

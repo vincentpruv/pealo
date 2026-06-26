@@ -615,8 +615,9 @@
 
   // --- Auto Open Triggers ---
   function initTriggers() {
-    const trigger = widgetConfig.autoOpenTrigger || "none";
-    if (trigger === "none") return;
+    const rawTrigger = widgetConfig.autoOpenTrigger || "none";
+    const triggers = rawTrigger.split(",").map(t => t.trim()).filter(Boolean);
+    if (triggers.includes("none") || triggers.length === 0) return;
 
     // Check if URL targeting matches for auto-opening
     const currentPath = window.location.pathname;
@@ -632,12 +633,14 @@
       if (!matched) return; // If targeting is specified and we don't match, don't auto-open
     }
 
-    if (trigger === "time") {
+    if (triggers.includes("time")) {
       const delay = (Number(widgetConfig.autoOpenValue) || 5) * 1000;
       setTimeout(() => {
         if (!isOpen) openModal();
       }, delay);
-    } else if (trigger === "scroll") {
+    }
+    
+    if (triggers.includes("scroll")) {
       const targetPercent = Number(widgetConfig.autoOpenValue) || 50;
       const handleScroll = () => {
         const docHeight = document.documentElement.scrollHeight - window.innerHeight;
@@ -649,7 +652,9 @@
         }
       };
       window.addEventListener("scroll", handleScroll);
-    } else if (trigger === "exit_intent") {
+    }
+    
+    if (triggers.includes("exit_intent")) {
       const handleMouseLeave = (e) => {
         if (e.clientY < 20) {
           if (!isOpen) openModal();
@@ -657,7 +662,9 @@
         }
       };
       document.addEventListener("mouseleave", handleMouseLeave);
-    } else if (trigger === "element") {
+    }
+    
+    if (triggers.includes("element")) {
       const selector = widgetConfig.autoOpenSelector || "";
       if (selector) {
         const checkElement = () => {

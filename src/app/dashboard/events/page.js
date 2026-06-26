@@ -40,6 +40,28 @@ function EventsPageContent() {
     ? autoOpenPages.split(",").map((p) => p.trim()).filter(Boolean)
     : [];
 
+  const activeTriggers = autoOpenTrigger.split(",").map(t => t.trim()).filter(Boolean);
+
+  const handleToggleTrigger = (triggerName) => {
+    if (triggerName === "none") {
+      setAutoOpenTrigger("none");
+      return;
+    }
+
+    let nextTriggers = activeTriggers.filter(t => t !== "none");
+    if (nextTriggers.includes(triggerName)) {
+      nextTriggers = nextTriggers.filter(t => t !== triggerName);
+    } else {
+      nextTriggers.push(triggerName);
+    }
+
+    if (nextTriggers.length === 0) {
+      setAutoOpenTrigger("none");
+    } else {
+      setAutoOpenTrigger(nextTriggers.join(","));
+    }
+  };
+
   const handleAddPath = () => {
     const trimmed = inputPath.trim();
     if (!trimmed) return;
@@ -270,23 +292,22 @@ function EventsPageContent() {
             <h2 className="text-lg font-semibold text-gray-900">Select Event Trigger</h2>
             <p className="text-sm text-muted-foreground">Choose what event triggers the widget popup</p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
+                    <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
             {/* Left Column: Triggers Selection (2/3 width) */}
             <div className="p-6 md:col-span-2">
               <div className="grid gap-4 sm:grid-cols-2">
                 {/* None */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  autoOpenTrigger === "none" 
+                  activeTriggers.includes("none") 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
                     : "border-border bg-white"
                 }`}>
                   <input
-                    type="radio"
+                    type="checkbox"
                     name="autoOpenTrigger"
                     value="none"
-                    checked={autoOpenTrigger === "none"}
-                    onChange={(e) => setAutoOpenTrigger(e.target.value)}
+                    checked={activeTriggers.includes("none")}
+                    onChange={() => handleToggleTrigger("none")}
                     className="sr-only"
                   />
                   <div className="w-10 h-10 rounded-lg bg-gray-100 border flex items-center justify-center shrink-0">
@@ -302,16 +323,16 @@ function EventsPageContent() {
 
                 {/* Time Delay */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  autoOpenTrigger === "time" 
+                  activeTriggers.includes("time") 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
                     : "border-border bg-white"
                 }`}>
                   <input
-                    type="radio"
+                    type="checkbox"
                     name="autoOpenTrigger"
                     value="time"
-                    checked={autoOpenTrigger === "time"}
-                    onChange={(e) => setAutoOpenTrigger(e.target.value)}
+                    checked={activeTriggers.includes("time")}
+                    onChange={() => handleToggleTrigger("time")}
                     className="sr-only"
                   />
                   <div className="w-10 h-10 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
@@ -327,16 +348,16 @@ function EventsPageContent() {
 
                 {/* Scroll Depth */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  autoOpenTrigger === "scroll" 
+                  activeTriggers.includes("scroll") 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
                     : "border-border bg-white"
                 }`}>
                   <input
-                    type="radio"
+                    type="checkbox"
                     name="autoOpenTrigger"
                     value="scroll"
-                    checked={autoOpenTrigger === "scroll"}
-                    onChange={(e) => setAutoOpenTrigger(e.target.value)}
+                    checked={activeTriggers.includes("scroll")}
+                    onChange={() => handleToggleTrigger("scroll")}
                     className="sr-only"
                   />
                   <div className="w-10 h-10 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
@@ -348,18 +369,20 @@ function EventsPageContent() {
                       Open the widget when the user scrolls down a specific portion of the page.
                     </span>
                   </div>
-                </label>                 {/* Exit Intent */}
+                </label>
+
+                {/* Exit Intent */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  autoOpenTrigger === "exit_intent" 
+                  activeTriggers.includes("exit_intent") 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
                     : "border-border bg-white"
                 }`}>
                   <input
-                    type="radio"
+                    type="checkbox"
                     name="autoOpenTrigger"
                     value="exit_intent"
-                    checked={autoOpenTrigger === "exit_intent"}
-                    onChange={(e) => setAutoOpenTrigger(e.target.value)}
+                    checked={activeTriggers.includes("exit_intent")}
+                    onChange={() => handleToggleTrigger("exit_intent")}
                     className="sr-only"
                   />
                   <div className="w-10 h-10 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
@@ -375,16 +398,16 @@ function EventsPageContent() {
 
                 {/* Element Selector */}
                 <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  autoOpenTrigger === "element" 
+                  activeTriggers.includes("element") 
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
                     : "border-border bg-white"
                 }`}>
                   <input
-                    type="radio"
+                    type="checkbox"
                     name="autoOpenTrigger"
                     value="element"
-                    checked={autoOpenTrigger === "element"}
-                    onChange={(e) => setAutoOpenTrigger(e.target.value)}
+                    checked={activeTriggers.includes("element")}
+                    onChange={() => handleToggleTrigger("element")}
                     className="sr-only"
                   />
                   <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
@@ -401,9 +424,9 @@ function EventsPageContent() {
             </div>
 
             {/* Right Column: Settings Panel (1/3 width) */}
-            <div className="p-6 md:col-span-1 bg-gray-50/30 flex flex-col justify-center min-h-[220px]">
-              {autoOpenTrigger === "none" && (
-                <div className="flex flex-col items-center justify-center text-center p-4 text-muted-foreground">
+            <div className="p-6 md:col-span-1 bg-gray-50/30 flex flex-col justify-start gap-5 overflow-y-auto max-h-[460px] min-h-[220px]">
+              {(activeTriggers.includes("none") || activeTriggers.length === 0) && (
+                <div className="flex flex-col items-center justify-center text-center p-4 text-muted-foreground my-auto">
                   <Ban className="w-8 h-8 text-gray-300 mb-2.5" />
                   <span className="font-semibold text-sm text-gray-900">No Auto-Open</span>
                   <p className="text-xs text-muted-foreground mt-1 max-w-[200px] leading-relaxed">
@@ -412,18 +435,19 @@ function EventsPageContent() {
                 </div>
               )}
 
-              {autoOpenTrigger === "exit_intent" && (
-                <div className="flex flex-col items-center justify-center text-center p-4 text-muted-foreground">
-                  <LogOut className="w-8 h-8 text-orange-400 mb-2.5 rotate-270" />
-                  <span className="font-semibold text-sm text-gray-900">Exit Intent Trigger</span>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-[200px] leading-relaxed">
+              {activeTriggers.includes("exit_intent") && (
+                <div className="rounded-xl border bg-white p-4 shadow-2xs space-y-1 animate-in fade-in duration-200">
+                  <span className="font-semibold text-xs text-gray-400 uppercase tracking-wider block flex items-center gap-1.5">
+                    🚪 Exit Intent Active
+                  </span>
+                  <p className="text-xs text-muted-foreground leading-relaxed pt-1">
                     Widget appears automatically when the user moves their mouse to leave the tab.
                   </p>
                 </div>
               )}
 
-              {autoOpenTrigger === "time" && (
-                <div className="space-y-3.5">
+              {activeTriggers.includes("time") && (
+                <div className="space-y-3.5 rounded-xl border bg-white p-4 shadow-2xs animate-in fade-in duration-200">
                   <div className="space-y-1">
                     <span className="font-semibold text-sm text-gray-900 block">Time Delay</span>
                     <span className="text-xs text-muted-foreground block">Adjust the delay before opening the popup</span>
@@ -448,8 +472,8 @@ function EventsPageContent() {
                 </div>
               )}
 
-              {autoOpenTrigger === "scroll" && (
-                <div className="space-y-3.5">
+              {activeTriggers.includes("scroll") && (
+                <div className="space-y-3.5 rounded-xl border bg-white p-4 shadow-2xs animate-in fade-in duration-200">
                   <div className="space-y-1">
                     <span className="font-semibold text-sm text-gray-900 block">Scroll Depth</span>
                     <span className="text-xs text-muted-foreground block">Adjust how far down the user must scroll</span>
@@ -474,8 +498,8 @@ function EventsPageContent() {
                 </div>
               )}
 
-              {autoOpenTrigger === "element" && (
-                <div className="space-y-3.5 animate-in fade-in duration-200">
+              {activeTriggers.includes("element") && (
+                <div className="space-y-3.5 rounded-xl border bg-white p-4 shadow-2xs animate-in fade-in duration-200">
                   <div className="space-y-1">
                     <span className="font-semibold text-sm text-gray-900 block">Element Selector</span>
                     <span className="text-xs text-muted-foreground block">Trigger when an element is visible on screen</span>
