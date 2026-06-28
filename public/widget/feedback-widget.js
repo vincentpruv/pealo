@@ -640,6 +640,8 @@
     const currentPath = window.location.pathname;
 
     triggers.forEach(tr => {
+      if (tr.active === false) return; // skip inactive triggers
+
       // Check per-trigger page targeting (if specified)
       if (tr.pages && tr.pages.trim() !== "") {
         const paths = tr.pages.split(",").map(p => p.trim()).filter(Boolean);
@@ -691,8 +693,8 @@
         if (selector) {
           const checkElement = () => {
             try {
-              const el = document.querySelector(selector);
-              if (el) {
+              const elements = document.querySelectorAll(selector);
+              if (elements.length > 0) {
                 const observer = new IntersectionObserver((entries) => {
                   entries.forEach((entry) => {
                     if (entry.isIntersecting) {
@@ -701,7 +703,7 @@
                     }
                   });
                 });
-                observer.observe(el);
+                elements.forEach(el => observer.observe(el));
                 return true;
               }
             } catch (err) {

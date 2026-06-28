@@ -40,23 +40,15 @@ function EventsPageContent() {
     element: ""
   });
 
+  const DEFAULT_TRIGGERS = [
+    { type: "time", value: "5", pages: "", active: false },
+    { type: "scroll", value: "50", pages: "", active: false },
+    { type: "exit_intent", value: "", pages: "", active: false },
+    { type: "element", value: "#pricing", pages: "", active: false }
+  ];
+
   const handleToggleTrigger = (type) => {
-    if (type === "none") {
-      setTriggers([]);
-      return;
-    }
-    setTriggers(prev => {
-      const exists = prev.some(t => t.type === type);
-      if (exists) {
-        return prev.filter(t => t.type !== type);
-      } else {
-        let defaultValue = "";
-        if (type === "time") defaultValue = "5";
-        if (type === "scroll") defaultValue = "50";
-        if (type === "element") defaultValue = "#pricing";
-        return [...prev, { type, value: defaultValue, pages: "" }];
-      }
-    });
+    setTriggers(prev => prev.map(t => t.type === type ? { ...t, active: !t.active } : t));
   };
 
   const handleUpdateTriggerField = (type, field, val) => {
@@ -103,6 +95,43 @@ function EventsPageContent() {
     handleUpdateTriggerField(type, "pages", updated.join(", "));
   };
 
+  const [triggerInputSelector, setTriggerInputSelector] = useState("");
+
+  const handleAddSelector = () => {
+    const trimmed = triggerInputSelector.trim();
+    if (!trimmed) return;
+
+    const newSelectors = trimmed.split(",").map(s => s.trim()).filter(Boolean);
+    const trigger = triggers.find(tr => tr.type === "element");
+    if (!trigger) return;
+
+    const existingSelectors = trigger.value
+      ? trigger.value.split(",").map(s => s.trim()).filter(Boolean)
+      : [];
+
+    const updated = [...existingSelectors];
+    newSelectors.forEach(ns => {
+      if (!updated.includes(ns)) {
+        updated.push(ns);
+      }
+    });
+
+    handleUpdateTriggerField("element", "value", updated.join(", "));
+    setTriggerInputSelector("");
+  };
+
+  const handleRemoveSelector = (idxToRemove) => {
+    const trigger = triggers.find(tr => tr.type === "element");
+    if (!trigger) return;
+
+    const existingSelectors = trigger.value
+      ? trigger.value.split(",").map(s => s.trim()).filter(Boolean)
+      : [];
+
+    const updated = existingSelectors.filter((_, idx) => idx !== idxToRemove);
+    handleUpdateTriggerField("element", "value", updated.join(", "));
+  };
+
   // 1. Fetch user projects on mount
   useEffect(() => {
     async function loadProjects() {
@@ -131,27 +160,38 @@ function EventsPageContent() {
       isFirstRender.current = true;
       const config = selectedProject.widgetConfig || {};
       
-      const loadedTriggers = config.triggers && config.triggers.length > 0
-        ? config.triggers
-        : (() => {
-            if (config.autoOpenTrigger && config.autoOpenTrigger !== "none") {
-              const types = config.autoOpenTrigger.split(",").map(t => t.trim()).filter(Boolean);
-              return types.map(t => {
-                let value = "";
-                if (t === "time" || t === "scroll") {
-                  value = String(config.autoOpenValue !== undefined ? config.autoOpenValue : 5);
-                } else if (t === "element") {
-                  value = config.autoOpenSelector || "";
-                }
-                return {
-                  type: t,
-                  value,
-                  pages: config.autoOpenPages || ""
-                };
-              });
+      const configTriggers = config.triggers || [];
+      const loadedTriggers = DEFAULT_TRIGGERS.map(def => {
+        const found = configTriggers.find(t => t.type === def.type);
+        if (found) {
+          return {
+            ...def,
+            ...found,
+            active: found.active !== undefined ? found.active : true
+          };
+        }
+        
+        // Migrate legacy single trigger config if present
+        if (config.autoOpenTrigger && config.autoOpenTrigger !== "none") {
+          const legacyTypes = config.autoOpenTrigger.split(",").map(t => t.trim()).filter(Boolean);
+          if (legacyTypes.includes(def.type)) {
+            let value = def.value;
+            if (def.type === "time" || def.type === "scroll") {
+              value = String(config.autoOpenValue !== undefined ? config.autoOpenValue : def.value);
+            } else if (def.type === "element") {
+              value = config.autoOpenSelector || def.value;
             }
-            return [];
-          })();
+            return {
+              ...def,
+              value,
+              pages: config.autoOpenPages || "",
+              active: true
+            };
+          }
+        }
+        
+        return def;
+      });
 
       setTriggers(loadedTriggers);
       setSavedStatus("saved");
@@ -162,13 +202,13 @@ function EventsPageContent() {
     if (!selectedProject) return;
     setSavedStatus("saving");
 
-    // Maintain legacy fields for backwards compatibility/graceful degradation
-    const autoOpenTrigger = triggers.length === 0 ? "none" : triggers.map(t => t.type).join(",");
-    const firstNumericTrigger = triggers.find(t => t.type === "time" || t.type === "scroll");
+    const activeList = triggers.filter(t => t.active);
+    const autoOpenTrigger = activeList.length === 0 ? "none" : activeList.map(t => t.type).join(",");
+    const firstNumericTrigger = activeList.find(t => t.type === "time" || t.type === "scroll");
     const autoOpenValue = firstNumericTrigger ? (Number(firstNumericTrigger.value) || 5) : 5;
-    const firstElementTrigger = triggers.find(t => t.type === "element");
+    const firstElementTrigger = activeList.find(t => t.type === "element");
     const autoOpenSelector = firstElementTrigger ? firstElementTrigger.value : "";
-    const autoOpenPages = triggers.length > 0 ? triggers[0].pages : "";
+    const autoOpenPages = activeList.length > 0 ? activeList[0].pages : "";
 
     const updatedConfig = {
       ...(selectedProject.widgetConfig || {}),
@@ -321,226 +361,183 @@ function EventsPageContent() {
           Configure how and when the feedback widget pops up automatically for your users.
         </p>
       </div>      <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-        {/* Trigger Type Selection */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
-          <div className="p-6 border-b border-border bg-gray-50/50">
-            <h2 className="text-lg font-semibold text-gray-900">Select Event Trigger</h2>
-            <p className="text-sm text-muted-foreground">Choose what event triggers the widget popup</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
-            {/* Left Column: Triggers Selection (2/3 width) */}
-            <div className="p-6 md:col-span-2">
-              <div className="grid gap-4 sm:grid-cols-2">
-                {/* None */}
-                <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  triggers.length === 0 
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
-                    : "border-border bg-white"
-                }`}>
-                  <input
-                    type="checkbox"
-                    name="autoOpenTrigger"
-                    value="none"
-                    checked={triggers.length === 0}
-                    onChange={() => handleToggleTrigger("none")}
-                    className="sr-only"
-                  />
-                  <div className="w-10 h-10 rounded-lg bg-gray-100 border flex items-center justify-center shrink-0">
-                    <Ban className="w-5 h-5 text-gray-500" />
-                  </div>
-                  <div>
-                    <span className="block font-semibold text-sm text-gray-900">None (Manual only)</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">
-                      The widget will only open when the floating button is manually clicked.
-                    </span>
-                  </div>
-                </label>
-
-                {/* Time Delay */}
-                <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  triggers.some(t => t.type === "time") 
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
-                    : "border-border bg-white"
-                }`}>
-                  <input
-                    type="checkbox"
-                    name="autoOpenTrigger"
-                    value="time"
-                    checked={triggers.some(t => t.type === "time")}
-                    onChange={() => handleToggleTrigger("time")}
-                    className="sr-only"
-                  />
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <Clock className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <span className="block font-semibold text-sm text-gray-900">Time Delay</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">
-                      Automatically open the widget after the user spends some time on the page.
-                    </span>
-                  </div>
-                </label>
-
-                {/* Scroll Depth */}
-                <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  triggers.some(t => t.type === "scroll") 
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
-                    : "border-border bg-white"
-                }`}>
-                  <input
-                    type="checkbox"
-                    name="autoOpenTrigger"
-                    value="scroll"
-                    checked={triggers.some(t => t.type === "scroll")}
-                    onChange={() => handleToggleTrigger("scroll")}
-                    className="sr-only"
-                  />
-                  <div className="w-10 h-10 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
-                    <Move className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <span className="block font-semibold text-sm text-gray-900">Scroll Depth</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">
-                      Open the widget when the user scrolls down a specific portion of the page.
-                    </span>
-                  </div>
-                </label>
-
-                {/* Exit Intent */}
-                <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  triggers.some(t => t.type === "exit_intent") 
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
-                    : "border-border bg-white"
-                }`}>
-                  <input
-                    type="checkbox"
-                    name="autoOpenTrigger"
-                    value="exit_intent"
-                    checked={triggers.some(t => t.type === "exit_intent")}
-                    onChange={() => handleToggleTrigger("exit_intent")}
-                    className="sr-only"
-                  />
-                  <div className="w-10 h-10 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
-                    <LogOut className="w-5 h-5 text-orange-600 rotate-270" />
-                  </div>
-                  <div>
-                    <span className="block font-semibold text-sm text-gray-900">Exit Intent</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">
-                      Trigger widget when the cursor moves to exit the browser tab (prevent churn).
-                    </span>
-                  </div>
-                </label>
-
-                {/* Element Selector */}
-                <label className={`flex gap-4 p-4 rounded-xl border cursor-pointer hover:bg-gray-50/30 transition-all ${
-                  triggers.some(t => t.type === "element") 
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
-                    : "border-border bg-white"
-                }`}>
-                  <input
-                    type="checkbox"
-                    name="autoOpenTrigger"
-                    value="element"
-                    checked={triggers.some(t => t.type === "element")}
-                    onChange={() => handleToggleTrigger("element")}
-                    className="sr-only"
-                  />
-                  <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-                    <Target className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <span className="block font-semibold text-sm text-gray-900">Element Selector</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">
-                      Trigger widget when a specific HTML element or CSS selector becomes visible.
-                    </span>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* Right Column: Settings Panel (1/3 width) */}
-            <div className="p-6 md:col-span-1 bg-gray-50/30 flex flex-col justify-start gap-6 overflow-y-auto max-h-[580px] min-h-[220px]">
-              {triggers.length === 0 && (
-                <div className="flex flex-col items-center justify-center text-center p-4 text-muted-foreground my-auto">
-                  <Ban className="w-8 h-8 text-gray-300 mb-2.5" />
-                  <span className="font-semibold text-sm text-gray-900">No Auto-Open</span>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-[200px] leading-relaxed">
-                    The widget will only open when your users manually click the floating bubble button.
-                  </p>
-                </div>
-              )}
-
-              {/* Time Delay Config */}
-              {triggers.map((tr) => {
-                const paths = tr.pages
-                  ? tr.pages.split(",").map((p) => p.trim()).filter(Boolean)
-                  : [];
-
-                return (
-                  <div key={tr.type} className="space-y-4 rounded-xl border bg-white p-5 shadow-2xs animate-in fade-in duration-200">
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <span className="font-bold text-sm text-gray-900 flex items-center gap-1.5 capitalize">
-                        {tr.type === "time" && <><Clock className="w-4 h-4 text-blue-600" /> Time Delay</>}
-                        {tr.type === "scroll" && <><Move className="w-4 h-4 text-purple-600" /> Scroll Depth</>}
-                        {tr.type === "exit_intent" && <><LogOut className="w-4 h-4 text-orange-500 rotate-270" /> Exit Intent</>}
-                        {tr.type === "element" && <><Target className="w-4 h-4 text-emerald-600" /> Element Selector</>}
+        <div className="space-y-4">
+          {triggers.map((tr) => {
+            return (
+              <div
+                key={tr.type}
+                className={`rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden transition-all duration-200 ${
+                  tr.active
+                    ? "border-primary bg-white ring-1 ring-primary/5"
+                    : "border-border bg-gray-50/30"
+                }`}
+              >
+                {/* Card Header */}
+                <div className="p-4 border-b border-border bg-gray-50/50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id={`checkbox-${tr.type}`}
+                      checked={tr.active}
+                      onChange={() => handleToggleTrigger(tr.type)}
+                      className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer transition-colors"
+                    />
+                    <label
+                      htmlFor={`checkbox-${tr.type}`}
+                      className="flex items-center gap-3 font-semibold text-sm sm:text-base text-gray-900 cursor-pointer select-none"
+                    >
+                      <span className="w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 bg-white shadow-2xs">
+                        {tr.type === "time" && <Clock className="w-5 h-5 text-blue-600" />}
+                        {tr.type === "scroll" && <Move className="w-5 h-5 text-purple-600" />}
+                        {tr.type === "exit_intent" && <LogOut className="w-5 h-5 text-orange-500 rotate-270" />}
+                        {tr.type === "element" && <Target className="w-5 h-5 text-emerald-600" />}
                       </span>
+                      <div className="flex flex-col text-left">
+                        <span className="font-semibold text-gray-900">
+                          {tr.type === "time" && "Time Delay"}
+                          {tr.type === "scroll" && "Scroll Depth"}
+                          {tr.type === "exit_intent" && "Exit Intent"}
+                          {tr.type === "element" && "Element Selector"}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-normal">
+                          {tr.type === "time" && "Automatically open the widget after the user spends some time on the page."}
+                          {tr.type === "scroll" && "Open the widget when the user scrolls down a specific portion of the page."}
+                          {tr.type === "exit_intent" && "Trigger widget when the cursor moves to exit the browser tab (prevent churn)."}
+                          {tr.type === "element" && "Trigger widget when a specific HTML element or CSS selector becomes visible."}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div>
+                    {tr.active ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <Check className="w-3 h-3" /> Enabled
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                        Disabled
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Body */}
+                <div className={`p-5 transition-all duration-200 ${!tr.active ? "opacity-50" : ""}`}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Trigger Value Inputs */}
+                    <div className="space-y-4">
+                      {tr.type === "time" && (
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Delay (seconds)</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="1"
+                              max="300"
+                              value={tr.value || "5"}
+                              onChange={(e) => handleUpdateTriggerField("time", "value", e.target.value)}
+                              disabled={!tr.active}
+                              className="w-24 px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50"
+                            />
+                            <span className="text-sm text-gray-600">seconds</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {tr.type === "scroll" && (
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Scroll Depth (%)</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="5"
+                              max="100"
+                              value={tr.value || "50"}
+                              onChange={(e) => handleUpdateTriggerField("scroll", "value", e.target.value)}
+                              disabled={!tr.active}
+                              className="w-24 px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50"
+                            />
+                            <span className="text-sm text-gray-600">% scrolled</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {tr.type === "element" && (
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">CSS Selectors</label>
+                          <div className="flex gap-2 max-w-md">
+                            <input
+                              type="text"
+                              value={triggerInputSelector}
+                              onChange={(e) => setTriggerInputSelector(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleAddSelector();
+                                }
+                              }}
+                              disabled={!tr.active}
+                              placeholder="e.g. #pricing, .cta-btn (Press Enter)"
+                              className="flex-1 px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-400 disabled:opacity-50"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddSelector}
+                              disabled={!tr.active || !triggerInputSelector.trim()}
+                              className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-40 shrink-0"
+                            >
+                              Add
+                            </button>
+                          </div>
+
+                          {(() => {
+                            const selectors = tr.value
+                              ? tr.value.split(",").map((s) => s.trim()).filter(Boolean)
+                              : [];
+                            return selectors.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5 pt-2">
+                                {selectors.map((sel, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-50 border text-xs font-medium text-gray-800"
+                                  >
+                                    <code className="text-xs">{sel}</code>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveSelector(idx)}
+                                      disabled={!tr.active}
+                                      className="text-gray-400 hover:text-rose-600 transition-colors disabled:opacity-40"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="block text-xs text-amber-600 bg-amber-50/50 border border-amber-100/50 rounded-lg p-2.5 mt-2 max-w-md">
+                                Please add at least one CSS Selector to target.
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {tr.type === "exit_intent" && (
+                        <div className="h-full flex items-center">
+                          <p className="text-sm text-muted-foreground italic">
+                            No additional configuration required for Exit Intent.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Trigger Value Inputs */}
-                    {tr.type === "time" && (
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">Delay (seconds)</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="1"
-                            max="300"
-                            value={tr.value || "5"}
-                            onChange={(e) => handleUpdateTriggerField("time", "value", e.target.value)}
-                            className="w-24 px-3 py-1.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                          />
-                          <span className="text-xs text-muted-foreground">seconds</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {tr.type === "scroll" && (
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">Scroll Depth (%)</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="5"
-                            max="100"
-                            value={tr.value || "50"}
-                            onChange={(e) => handleUpdateTriggerField("scroll", "value", e.target.value)}
-                            className="w-24 px-3 py-1.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                          />
-                          <span className="text-xs text-muted-foreground">% scrolled</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {tr.type === "element" && (
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">CSS Selector</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. #pricing, .cta-btn, footer"
-                          value={tr.value || ""}
-                          onChange={(e) => handleUpdateTriggerField("element", "value", e.target.value)}
-                          className="w-full px-3 py-1.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-400"
-                        />
-                      </div>
-                    )}
-
                     {/* Per-Trigger Target Pages */}
-                    <div className="space-y-2 pt-2 border-t border-gray-100">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1">
+                    <div className="space-y-2 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1">
                         <Globe className="w-3.5 h-3.5 text-gray-400" /> Target Pages (Optional)
                       </label>
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-2 max-w-md">
                         <input
                           type="text"
                           value={triggerInputPaths[tr.type] || ""}
@@ -551,48 +548,55 @@ function EventsPageContent() {
                               handleAddTriggerPath(tr.type);
                             }
                           }}
+                          disabled={!tr.active}
                           placeholder="e.g. /pricing (Press Enter)"
-                          className="flex-1 px-2.5 py-1.5 border rounded-lg text-xs bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-400"
+                          className="flex-1 px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-gray-400 disabled:opacity-50"
                         />
                         <button
                           type="button"
                           onClick={() => handleAddTriggerPath(tr.type)}
-                          disabled={!(triggerInputPaths[tr.type] || "").trim()}
-                          className="px-3 py-1.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 shrink-0"
+                          disabled={!tr.active || !(triggerInputPaths[tr.type] || "").trim()}
+                          className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-40 shrink-0"
                         >
                           Add
                         </button>
                       </div>
 
-                      {paths.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5 pt-1.5">
-                          {paths.map((path, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-50 border text-[11px] font-medium text-gray-800"
-                            >
-                              <span>{path}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveTriggerPath(tr.type, idx)}
-                                className="text-gray-400 hover:text-rose-600 transition-colors"
+                      {(() => {
+                        const paths = tr.pages
+                          ? tr.pages.split(",").map((p) => p.trim()).filter(Boolean)
+                          : [];
+                        return paths.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 pt-2">
+                            {paths.map((path, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-50 border text-xs font-medium text-gray-800"
                               >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="block text-[11px] text-amber-600 bg-amber-50/50 border border-amber-100/50 rounded-lg p-2 mt-1">
-                          Runs on <strong>all pages</strong> of your website.
-                        </span>
-                      )}
+                                <span>{path}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTriggerPath(tr.type, idx)}
+                                  disabled={!tr.active}
+                                  className="text-gray-400 hover:text-rose-600 transition-colors disabled:opacity-40"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="block text-xs text-amber-600 bg-amber-50/50 border border-amber-100/50 rounded-lg p-2.5 mt-2 max-w-md">
+                            Runs on <strong>all pages</strong> of your website.
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </form>
     </div>
